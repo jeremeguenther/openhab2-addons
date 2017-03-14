@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="dlinksmartplugs"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+        xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+    <!-- Sample Thing Type -->
+    <thing-type id="dlinkplug">
+        <label>DLink Plug</label>
+        <description>DLink Smart Plug</description>
+
+        <channels>
+            <channel id="power" typeId="power"></channel><channel typeId="reboot" id="reboot"></channel>
+        	<channel typeId="state" id="state"></channel>
+        	<channel typeId="consumption" id="consumption"></channel>
+        	<channel typeId="totalconsumption" id="totalconsumption"></channel>
+        	<channel typeId="temperature" id="temperature"></channel>
+        	<channel typeId="powerwarning" id="powerwarning"></channel>
+        </channels>
+        <config-description>
+        	<parameter name="ipaddress" type="text">
+        		<required>true</required></parameter>
+        	<parameter name="pincode" type="text">
+        		<required>true</required></parameter></config-description>
+    </thing-type>
+
+    <!-- Sample Channel Type -->
+    <channel-type id="power">
+        <item-type>Switch</item-type>
+        <label>Power</label>
+        <description>Turn Plug On/Off</description>
+        <category>Switch</category>
+    </channel-type>
+    <channel-type id="reboot">
+    	<item-type>Switch</item-type>
+    	<label>Reboot</label>
+    	<description>Reboot the plug</description>
+    </channel-type>
+    <channel-type id="state">
+    	<item-type>String</item-type>
+    	<label>State</label>
+    	<description>Get Current Plug State</description>
+    	<state readOnly="True">
+    		<options>
+    			<option value="ON">On</option>
+    			<option value="OFF">Off</option>
+    			<option value="ERROR">Unknown</option>
+    		</options></state>
+    </channel-type>
+    <channel-type id="consumption">
+    	<item-type>String</item-type>
+    	<label>Consumption</label>
+    	<description>Current Plug Consumption</description>
+    </channel-type>
+    <channel-type id="totalconsumption">
+    	<item-type>String</item-type>
+    	<label>TotalConsumption</label>
+    	<description>Get Plugs Total Consumption</description>
+    </channel-type>
+    <channel-type id="temperature">
+    	<item-type>String</item-type>
+    	<label>Temperature</label>
+    	<description>Current Plug Temperature</description>
+    </channel-type>
+    <channel-type id="powerwarning">
+    	<item-type>String</item-type>
+    	<label>powerwarning</label>
+    	<description>Check for a Power Warning</description>
+    </channel-type>
+
+</thing:thing-descriptions>
