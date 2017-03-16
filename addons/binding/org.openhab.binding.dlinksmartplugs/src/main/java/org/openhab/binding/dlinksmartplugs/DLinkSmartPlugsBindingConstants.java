@@ -33,5 +33,8 @@ public class DLinkSmartPlugsBindingConstants {
 
     // Config variables
     public static final String REFRESH = "refresh";
+    public static final String IPADDRESS = "ipaddress";
+    public static final String PINCODE = "pincode";
+    public static final String TIMEOUT = "timeout";
 
 }

@@ -16,4 +16,5 @@ public class VARS_HNAP_AUTH {
     public String PublicKey = "";
     public String Cookie = "";
     public String PrivateKey = "";
+    public Integer ConnectionTimeout = 3000;
 }

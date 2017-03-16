@@ -38,10 +38,11 @@ public class SoapClient {
 
     private VARS_HNAP_AUTH HNAP_AUTH = new VARS_HNAP_AUTH();
 
-    public String Login(String user, String password, String url) {
+    public String Login(String user, String password, String url, Integer timeout) {
         HNAP_AUTH.User = user;
         HNAP_AUTH.Pwd = password;
         HNAP_AUTH.URL = url;
+        HNAP_AUTH.ConnectionTimeout = timeout;
 
         try {
             DOMParser = factory.newDocumentBuilder();
@@ -286,6 +287,7 @@ public class SoapClient {
         try {
             URL obj = new URL(sURL);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+            con.setConnectTimeout(HNAP_AUTH.ConnectionTimeout);
 
             // add request header
             con.setRequestMethod(sMETHOD);

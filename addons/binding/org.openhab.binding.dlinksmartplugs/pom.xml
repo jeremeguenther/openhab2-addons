@@ -15,4 +15,5 @@
 
   <name>DLinkSmartPlugs Binding</name>
 
+  <packaging>eclipse-plugin</packaging>
 </project>

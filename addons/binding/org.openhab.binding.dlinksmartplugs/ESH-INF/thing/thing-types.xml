@@ -19,9 +19,17 @@
         </channels>
         <config-description>
         	<parameter name="ipaddress" type="text">
-        		<required>true</required></parameter>
+        		<required>true</required>
+        		<description>IP Address</description></parameter>
         	<parameter name="pincode" type="text">
-        		<required>true</required></parameter></config-description>
+        		<required>true</required>
+        		<description>Pin Code ( back of plug )</description></parameter>
+        	<parameter name="refresh" type="integer" min="1" required="false">
+        		<description>Refresh Interval ( seconds )</description>
+        		<default>10</default></parameter>
+        	<parameter name="timeout" type="integer" required="false">
+        		<description>Soap Call Timeout ( Milliseconds )</description>
+        		<default>3000</default></parameter></config-description>
     </thing-type>
 
     <!-- Sample Channel Type -->
@@ -32,7 +40,7 @@
         <category>Switch</category>
     </channel-type>
     <channel-type id="reboot">
-    	<item-type>Switch</item-type>
+    	<item-type>String</item-type>
     	<label>Reboot</label>
     	<description>Reboot the plug</description>
     </channel-type>
@@ -40,17 +48,13 @@
     	<item-type>String</item-type>
     	<label>State</label>
     	<description>Get Current Plug State</description>
-    	<state readOnly="True">
-    		<options>
-    			<option value="ON">On</option>
-    			<option value="OFF">Off</option>
-    			<option value="ERROR">Unknown</option>
-    		</options></state>
+    	<state readOnly="true"></state>
     </channel-type>
     <channel-type id="consumption">
     	<item-type>String</item-type>
     	<label>Consumption</label>
     	<description>Current Plug Consumption</description>
+    	<state readOnly="true"></state>
     </channel-type>
     <channel-type id="totalconsumption">
     	<item-type>String</item-type>
@@ -61,11 +65,13 @@
     	<item-type>String</item-type>
     	<label>Temperature</label>
     	<description>Current Plug Temperature</description>
+    	<state readOnly="true"></state>
     </channel-type>
     <channel-type id="powerwarning">
     	<item-type>String</item-type>
     	<label>powerwarning</label>
     	<description>Check for a Power Warning</description>
+    	<state readOnly="true"></state>
     </channel-type>
 
 </thing:thing-descriptions>

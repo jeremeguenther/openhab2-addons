@@ -10,6 +10,7 @@ package org.openhab.binding.dlinksmartplugs.handler;
 import static org.openhab.binding.dlinksmartplugs.DLinkSmartPlugsBindingConstants.*;
 
 import java.math.BigDecimal;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.config.core.Configuration;
@@ -38,18 +39,23 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
 
     private Logger logger = LoggerFactory.getLogger(DLinkSmartPlugsHandler.class);
     private SoapClient client = new SoapClient();
+    private ScheduledFuture<?> pollingJob;
+
     private String IPaddress = "";
     private String Pincode = "";
     private String clientStatus = "";
+    private int ConnectionTimeout = 3000;
 
     public DLinkSmartPlugsHandler(Thing thing) {
         super(thing);
+
     }
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         String channel = channelUID.getId();
         startCommand(channel, command);
+
     }
 
     @Override
@@ -60,9 +66,10 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
         int refresh = 10;
         try {
             Configuration config = this.getConfig();
-            IPaddress = config.get("ipaddress").toString();
-            Pincode = config.get("pincode").toString();
+            IPaddress = config.get(IPADDRESS).toString();
+            Pincode = config.get(PINCODE).toString();
             refresh = ((BigDecimal) config.get(REFRESH)).intValue();
+            ConnectionTimeout = ((BigDecimal) config.get(TIMEOUT)).intValue();
         } catch (NullPointerException e) {
             // keep default
         }
@@ -77,7 +84,7 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
         }
 
         logger.info("Dlink Plug initializing with ipaddress={} and pincode={}", IPaddress, Pincode);
-        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/");
+        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/", ConnectionTimeout);
 
         if (clientStatus == null || clientStatus.length() == 0) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Can not contact device");
@@ -105,24 +112,42 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
                 }
             }
         };
-        scheduler.scheduleWithFixedDelay(refreshHVACUnits, 0, refresh, TimeUnit.SECONDS);
+        pollingJob = scheduler.scheduleWithFixedDelay(refreshHVACUnits, 0, refresh, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void dispose() {
+        pollingJob.cancel(true);
     }
 
     public void startCommand(String channel, Command command) {
         /*
          * Check to make sure we are online, if not try to get back online.
+         * but, if already offline, don't waste a second call trying to get back online.
+         * -- run every time to keep security hash fresh.
          */
-        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/"); // run every time to keep
-                                                                                          // security hash fresh
-        if (!clientStatus.equals("success")) {
-            clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/");
-            if (clientStatus.equals("success")) {
+        String currentStatus = clientStatus;
+
+        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/", ConnectionTimeout);
+        if (currentStatus.equals("success") && !clientStatus.equals("success")) {
+            clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/", ConnectionTimeout);
+        }
+
+        ThingStatus ts = getThing().getStatus();
+        if (clientStatus.equals("success")) {
+            if (!ts.equals(ThingStatus.ONLINE)) {
                 updateStatus(ThingStatus.ONLINE);
-            } else {
+            }
+        } else {
+            if (ts.equals(ThingStatus.ONLINE)) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                         "Device " + IPaddress + " is offline.");
-                return;
+                updateState(CHANNEL_Power, OnOffType.OFF);
+                if (isLinked(CHANNEL_State)) {
+                    updateState(CHANNEL_State, new StringType("Offline"));
+                }
             }
+            return;
         }
 
         /*
@@ -134,7 +159,7 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
         if (commandresult.equals("ERROR")) {
             commandresult = runCommand(channel, command);
         }
-        logger.debug("DLINK PLUGS " + commandresult);
+        logger.debug("DLINK PLUGS commandResult {}", commandresult);
     }
 
     private String runCommand(String channel, Command command) {
@@ -147,16 +172,32 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
                 } else {
                     ret = client.Plug_Off();
                 }
-            } else if (channel.equals(CHANNEL_Reboot) && command instanceof OnOffType) {
-                if (((OnOffType) command) == OnOffType.ON) {
-                    ret = client.Plug_Reboot();
-                    clientStatus = ""; // reset the plug so we get new credentials when it comes back online
-                    updateState(CHANNEL_Reboot, OnOffType.OFF);
-                }
+            } else if (channel.equals(CHANNEL_Reboot) && command instanceof StringType) {
+                // if (((StringType) command).equals("GO")) {
+                ret = client.Plug_Reboot();
+                clientStatus = ""; // reset the plug so we get new credentials when it comes back online
+                updateState(CHANNEL_Reboot, new StringType(""));
+                updateState(CHANNEL_State, new StringType("Rebooting"));
+                // }
             } else {
                 ret = client.Plug_State();
-                updateState(CHANNEL_Power, ret.equals("ON") ? OnOffType.ON : OnOffType.OFF);
-                setStatus(CHANNEL_State, ret);
+                updateState(CHANNEL_Power, ret.equals("true") ? OnOffType.ON : OnOffType.OFF);
+                if (isLinked(CHANNEL_State)) {
+                    setStatus(CHANNEL_State, ret.equals("true") ? "ON" : "OFF");
+                }
+                if (isLinked(CHANNEL_Consumption)) {
+                    setStatus(CHANNEL_Consumption, client.Plug_Consumption());
+                }
+                if (isLinked(CHANNEL_TotalConsumption)) {
+                    setStatus(CHANNEL_TotalConsumption, client.Plug_TotalConsumption());
+                }
+                if (isLinked(CHANNEL_Temperature)) {
+                    setStatus(CHANNEL_Temperature, client.Plug_Temperature());
+                }
+                if (isLinked(CHANNEL_PowerWarning)) {
+                    setStatus(CHANNEL_PowerWarning, client.Plug_GetPowerWarning());
+                }
+
             }
         } catch (Exception e) {
             logger.debug("Failed to set channel {} -> {}: {}", channel, command, e.getMessage());
@@ -168,8 +209,8 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
     }
 
     private void setStatus(String channel, String value) {
-        if (value.equals("ERROR")) {
-            logger.info("Device {} failed to get channel: {}", IPaddress, channel);
+        if (value.equals("ERROR") || value.equals("")) {
+            logger.debug("Device {} failed to get channel: {}", IPaddress, channel);
         }
 
         updateState(channel, new StringType(value));
