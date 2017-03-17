@@ -22,16 +22,13 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.dlinksmartplugs.helpers.SoapClient;
+import org.openhab.binding.dlinksmartplugs.internal.SoapClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The {@link DLinkSmartPlugsHandler} is responsible for handling commands, which are
  * sent to one of the channels.
- *
- * This code is a port of the node.js module found here:
- * https://github.com/bikerp/dsp-w215-hnap
  *
  * @author Jereme Guenther - Initial contribution
  */
@@ -48,7 +45,6 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
 
     public DLinkSmartPlugsHandler(Thing thing) {
         super(thing);
-
     }
 
     @Override
@@ -84,7 +80,7 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
         }
 
         logger.info("Dlink Plug initializing with ipaddress={} and pincode={}", IPaddress, Pincode);
-        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/", ConnectionTimeout);
+        clientStatus = client.Login("admin", Pincode, "http://" + IPaddress + "/HNAP1/", 2000);
 
         if (clientStatus == null || clientStatus.length() == 0) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Can not contact device");
@@ -120,6 +116,12 @@ public class DLinkSmartPlugsHandler extends BaseThingHandler {
         pollingJob.cancel(true);
     }
 
+    /**
+     * Method to start processing for a channel command, or status refresh.
+     *
+     * @param channel
+     * @param command
+     */
     public void startCommand(String channel, Command command) {
         /*
          * Check to make sure we are online, if not try to get back online.
